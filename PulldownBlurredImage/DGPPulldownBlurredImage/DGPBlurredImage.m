@@ -72,35 +72,60 @@
 }
 
 /**
- *  高斯背景
+ *  加模糊效果
  *
  *  @param image    需要高斯模糊的图片
  *  @param blur     高斯模糊的值
  *
- *  @return
  */
 - (UIImage *)blurryImage:(UIImage *)image withBlurLevel:(CGFloat)blur {
+    
+    /**
+     *  模糊度
+     */
     if ((blur < 0.0f) || (blur > 1.0f)) {
         blur = 0.5f;
     }
     
+    /**
+     *  boxSize必须大于0
+     */
     int boxSize = (int)(blur * 100);
     boxSize -= (boxSize % 2) + 1;
     
+    /**
+     *  图像处理
+     */
     CGImageRef img = image.CGImage;
     
+    /**
+     *  图像缓存，输入缓存、输出缓存
+     */
     vImage_Buffer inBuffer, outBuffer;
     vImage_Error error;
+    
+    /**
+     *  像素缓存
+     */
     void *pixelBuffer;
     
+    /**
+     *  数据提供者
+     */
     CGDataProviderRef inProvider = CGImageGetDataProvider(img);
     CFDataRef inBitmapData = CGDataProviderCopyData(inProvider);
     
+    /**
+     *  宽，高，字节行，data
+     */
     inBuffer.width = CGImageGetWidth(img);
     inBuffer.height = CGImageGetHeight(img);
     inBuffer.rowBytes = CGImageGetBytesPerRow(img);
     inBuffer.data = (void*)CFDataGetBytePtr(inBitmapData);
     
+    /**
+     *  像素缓存，字节行*图片高
+     */
     pixelBuffer = malloc(CGImageGetBytesPerRow(img) * CGImageGetHeight(img));
     
     outBuffer.data = pixelBuffer;
@@ -115,9 +140,29 @@
         NSLog(@"error from convolution %ld", error);
     }
     
+    /**
+     *  颜色空间DeviceRGB
+     *
+     *  @return
+     */
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    CGContextRef ctx = CGBitmapContextCreate(outBuffer.data, outBuffer.width, outBuffer.height, 8, outBuffer.rowBytes, colorSpace, CGImageGetBitmapInfo(image.CGImage));
     
+    /**
+     *  用图片创建上下文
+     *
+     */
+    CGContextRef ctx = CGBitmapContextCreate(
+                                             outBuffer.data,
+                                             outBuffer.width,
+                                             outBuffer.height,
+                                             8,
+                                             outBuffer.rowBytes,
+                                             colorSpace,
+                                             CGImageGetBitmapInfo(image.CGImage));
+    
+    /**
+     *  根据上下文，处理过的图片，重新组件
+     */
     CGImageRef imageRef = CGBitmapContextCreateImage (ctx);
     UIImage *returnImage = [UIImage imageWithCGImage:imageRef];
     
@@ -128,7 +173,6 @@
     free(pixelBuffer);
     CFRelease(inBitmapData);
     
-    CGColorSpaceRelease(colorSpace);
     CGImageRelease(imageRef);
     
     return returnImage;
